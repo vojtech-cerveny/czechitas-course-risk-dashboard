@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env*
+data
+*.sqlite
+*.sqlite-*
+.playwright-mcp
+dashboard.png
+course.png
+overview.png
+npm-debug.log
+README.md
