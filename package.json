@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
+    "trigger": "node --env-file=.env.local scripts/trigger.mjs",
     "scrape": "tsx --env-file=.env.local scripts/run-scrape.ts",
     "seed:demo": "tsx --env-file=.env.local scripts/seed-demo.ts",
     "test:risk": "tsx scripts/test-risk.ts"
