@@ -23,9 +23,16 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+# Bind to all interfaces. Without this, Next standalone uses Docker's auto-set
+# HOSTNAME (the container id) and binds only to the container IP — so the public
+# site works but 127.0.0.1 inside the container does not (breaks the scrape trigger).
+ENV HOSTNAME=0.0.0.0
 ENV DATABASE_PATH=/data/is-bot.sqlite
 
-RUN groupadd --system --gid 1001 nodejs \
+# gosu lets the entrypoint fix volume ownership as root, then drop to the app user.
+RUN apt-get update && apt-get install -y --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 1001 nodejs \
     && useradd --system --uid 1001 --gid nodejs nextjs \
     && mkdir -p /data && chown nextjs:nodejs /data
 
@@ -41,9 +48,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bindings ./node_modu
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
 # Plain-Node trigger script for the Coolify Scheduled Task (node scripts/trigger.mjs).
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/trigger.mjs ./scripts/trigger.mjs
+# Entrypoint ensures /data is writable, then drops to the nextjs user via gosu.
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-USER nextjs
+# Runs as root so the entrypoint can chown the (possibly root-owned) /data mount,
+# then execs the server as the unprivileged nextjs user.
 EXPOSE 3000
 VOLUME ["/data"]
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server.js"]
