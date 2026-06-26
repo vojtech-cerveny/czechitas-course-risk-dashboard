@@ -1,0 +1,32 @@
+# Coolify: deploy with the "Docker Compose" build pack so the named volume below
+# is created as PERSISTENT storage and survives redeploys. Set the env vars in the
+# Coolify UI (they are referenced here, not hardcoded).
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      IS_BASE_URL: ${IS_BASE_URL:-https://is.czechitas.cz}
+      IS_LOGIN: ${IS_LOGIN}
+      IS_PASSWORD: ${IS_PASSWORD}
+      UPDATE_TOKEN: ${UPDATE_TOKEN}
+      APP_PASSWORD: ${APP_PASSWORD}
+      AUTH_SECRET: ${AUTH_SECRET}
+      DATABASE_PATH: /data/is-bot.sqlite
+    volumes:
+      - is-bot-data:/data # persistent — keeps the SQLite history across deploys
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  is-bot-data:
