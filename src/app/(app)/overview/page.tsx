@@ -12,7 +12,7 @@ export default function OverviewPage() {
       <div>
         <h1 className="text-2xl font-semibold">Souhrnný přehled</h1>
         <p className="text-sm text-muted-foreground">
-          {stats.total} sledovaných kurzů
+          {stats.total} sledovaných kurzů · {stats.totalRegistered} registrovaných (otevřené registrace)
           {stats.lastCapturedAt
             ? ` · poslední aktualizace ${new Date(stats.lastCapturedAt).toLocaleString("cs-CZ")}`
             : ""}

@@ -9,7 +9,8 @@ import { computeRisk, type RiskResult } from "@/lib/risk";
 export interface CourseWithRisk {
   course: Course;
   latest: Snapshot | null;
-  history: { capturedAt: number; phase3Pct: number | null }[];
+  history: { capturedAt: number; phase3Pct: number | null; registeredCount: number | null }[];
+  registered: number | null; // latest accepted-participant count
   risk: RiskResult;
   snapshotCount: number;
 }
@@ -34,6 +35,7 @@ export function getCoursesWithRisk(): CourseWithRisk[] {
     const history = snaps.map((s) => ({
       capturedAt: s.capturedAt.getTime(),
       phase3Pct: s.phase3Pct,
+      registeredCount: s.registeredCount,
     }));
     const latest = snaps.length ? snaps[snaps.length - 1] : null;
     const risk = computeRisk(
@@ -45,7 +47,14 @@ export function getCoursesWithRisk(): CourseWithRisk[] {
       },
       t,
     );
-    return { course, latest, history, risk, snapshotCount: snaps.length };
+    return {
+      course,
+      latest,
+      history,
+      registered: latest?.registeredCount ?? null,
+      risk,
+      snapshotCount: snaps.length,
+    };
   });
 
   result.sort((a, b) => {
@@ -93,10 +102,11 @@ export function getCourseDetail(id: number): CourseDetail | null {
 
 export interface OverviewStats {
   total: number;
+  totalRegistered: number; // sum of accepted participants across open-registration courses
   byLevel: Record<string, number>;
   lastCapturedAt: string | null;
   riskOverTime: { date: string; red: number; yellow: number }[];
-  fillByTheme: { theme: string; avgFill: number; count: number }[];
+  fillByTheme: { theme: string; avgFill: number; registered: number; count: number }[];
 }
 
 export function getOverviewStats(): OverviewStats {
@@ -137,18 +147,27 @@ export function getOverviewStats(): OverviewStats {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, v]) => ({ date, ...v }));
 
-  // Average fill by theme among open courses.
-  const themeAgg = new Map<string, { sum: number; count: number }>();
+  // Average fill + total registered by theme among open courses.
+  let totalRegistered = 0;
+  const themeAgg = new Map<string, { sum: number; registered: number; count: number }>();
   for (const r of rows) {
-    if (r.course.state !== "realization_registration_open" || r.risk.fill == null) continue;
+    if (r.course.state !== "realization_registration_open") continue;
+    totalRegistered += r.registered ?? 0;
+    if (r.risk.fill == null) continue;
     const theme = r.course.theme ?? "—";
-    const agg = themeAgg.get(theme) ?? { sum: 0, count: 0 };
+    const agg = themeAgg.get(theme) ?? { sum: 0, registered: 0, count: 0 };
     agg.sum += r.risk.fill;
+    agg.registered += r.registered ?? 0;
     agg.count++;
     themeAgg.set(theme, agg);
   }
   const fillByTheme = [...themeAgg.entries()]
-    .map(([theme, a]) => ({ theme, avgFill: Math.round(a.sum / a.count), count: a.count }))
+    .map(([theme, a]) => ({
+      theme,
+      avgFill: Math.round(a.sum / a.count),
+      registered: a.registered,
+      count: a.count,
+    }))
     .sort((a, b) => a.avgFill - b.avgFill);
 
   const lastCapturedAt = allSnaps.length
@@ -157,6 +176,7 @@ export function getOverviewStats(): OverviewStats {
 
   return {
     total: rows.length,
+    totalRegistered,
     byLevel,
     lastCapturedAt,
     riskOverTime,

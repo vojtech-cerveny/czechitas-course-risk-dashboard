@@ -21,6 +21,7 @@ function toRow(c: CourseWithRisk): CourseTableRow {
     startAt: c.course.startAt,
     state: c.course.state,
     fill: c.risk.fill,
+    registered: c.registered,
     phase2: c.latest?.phase2Pct ?? null,
     phase4: c.latest?.phase4Pct ?? null,
     riskLevel: c.risk.level,
@@ -110,7 +111,10 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex items-baseline gap-3 text-sm">
                         <span>
-                          Naplněnost <strong className="tabular-nums">{c.risk.fill ?? "—"} %</strong>
+                          <strong className="tabular-nums">{c.registered ?? "—"}</strong> registrovaných
+                        </span>
+                        <span className="text-muted-foreground">
+                          Naplněnost <span className="tabular-nums">{c.risk.fill ?? "—"} %</span>
                         </span>
                         {c.risk.daysToDeadline != null && c.risk.daysToDeadline >= 0 && (
                           <span>

@@ -32,6 +32,7 @@ export interface TrendPoint {
   phase2: number | null;
   phase3: number | null;
   phase4: number | null;
+  registered: number | null;
 }
 
 export function TrendChart({
@@ -46,7 +47,20 @@ export function TrendChart({
   const data = {
     datasets: [
       {
-        label: "Registrace (Fáze 3)",
+        label: "Registrováno (počet)",
+        yAxisID: "yCount",
+        data: points.map((p) => ({ x: p.t, y: p.registered })),
+        borderColor: "oklch(0.45 0.09 230)",
+        backgroundColor: "oklch(0.45 0.09 230)",
+        fill: false,
+        tension: 0.25,
+        spanGaps: true,
+        pointRadius: 3,
+        borderWidth: 2,
+      },
+      {
+        label: "Registrace (Fáze 3, %)",
+        yAxisID: "y",
         data: points.map((p) => ({ x: p.t, y: p.phase3 })),
         borderColor: "oklch(0.62 0.24 1.6)",
         backgroundColor: "oklch(0.62 0.24 1.6 / 0.12)",
@@ -90,7 +104,19 @@ export function TrendChart({
         adapters: { date: { locale: cs } },
         grid: { display: false },
       },
-      y: { beginAtZero: true, ticks: { callback: (v) => `${v}%` } },
+      y: {
+        beginAtZero: true,
+        position: "left",
+        ticks: { callback: (v) => `${v}%` },
+        title: { display: true, text: "Naplněnost %" },
+      },
+      yCount: {
+        beginAtZero: true,
+        position: "right",
+        grid: { drawOnChartArea: false },
+        ticks: { precision: 0 },
+        title: { display: true, text: "Registrováno" },
+      },
     },
     plugins: {
       legend: { position: "bottom" },

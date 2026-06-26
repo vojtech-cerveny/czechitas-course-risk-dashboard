@@ -2,6 +2,8 @@ import { IsClient } from "./client";
 import {
   parseEventList,
   parseEventDetail,
+  parseParticipantStats,
+  registeredFromStats,
   type ListRow,
   type DetailFields,
 } from "./parse";
@@ -54,20 +56,39 @@ export async function fetchEventDetail(
   return parseEventDetail(html);
 }
 
+/**
+ * Absolute registered headcount = accepted participants ("Přijatý") from the
+ * participant-list tab's status statistics. This is the only reliably-exposed
+ * absolute number (the IS keeps no consistent capacity), and it drives the fill %.
+ */
+export async function fetchRegisteredCount(
+  client: IsClient,
+  id: number,
+): Promise<number | null> {
+  const html = await client.get(`/cs/event/event/edit/${id}/eventParticipantList`);
+  return registeredFromStats(parseParticipantStats(html));
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const emptyDetail = (): DetailFields => ({
+  capacity: null,
+  maxCapacity: null,
+  registeredCount: null,
+  registrationDeadline: null,
+});
+
 /**
- * Full scrape: login -> tracked-state lists (-> optional per-course detail).
+ * Full scrape: login -> tracked-state lists -> per-course registered headcount.
  *
- * The list page carries everything v1 needs (dates, state, the three phase %s incl.
- * registration fill). The IS exposes no explicit registration deadline, so we proxy it
- * from the course start date downstream. Detail pages are heavy and parse unreliably, so
- * `detail` defaults to off; enable it only to attempt absolute capacity/head-count.
+ * The list page carries the meta, dates, state, and the three phase %s (Fáze 3 =
+ * registration fill). For each course we additionally fetch the participant-list tab
+ * to read the absolute accepted count. Set `counts: false` to skip that (list-only).
  */
 export async function scrapeAll(
-  opts: { detail?: boolean; detailDelayMs?: number } = {},
+  opts: { counts?: boolean; delayMs?: number } = {},
 ): Promise<ScrapeResult> {
-  const { detail = false, detailDelayMs = 250 } = opts;
+  const { counts = true, delayMs = 200 } = opts;
   const client = new IsClient();
   await client.login();
 
@@ -79,21 +100,16 @@ export async function scrapeAll(
 
   const courses: ScrapedCourse[] = [];
   for (const row of byId.values()) {
-    let detailFields: DetailFields = {
-      capacity: null,
-      maxCapacity: null,
-      registeredCount: null,
-      registrationDeadline: null,
-    };
-    if (detail) {
+    const detail = emptyDetail();
+    if (counts) {
       try {
-        detailFields = await fetchEventDetail(client, row.id);
+        detail.registeredCount = await fetchRegisteredCount(client, row.id);
       } catch {
-        // best-effort; keep nulls on failure
+        // best-effort; leave registeredCount null on failure
       }
-      if (detailDelayMs) await sleep(detailDelayMs);
+      if (delayMs) await sleep(delayMs);
     }
-    courses.push({ row, detail: detailFields });
+    courses.push({ row, detail });
   }
 
   return { capturedAt: new Date(), courses };

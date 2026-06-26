@@ -31,8 +31,10 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
     phase2: s.phase2Pct,
     phase3: s.phase3Pct,
     phase4: s.phase4Pct,
+    registered: s.registeredCount,
   }));
   const deadlineMs = risk.deadline ? Date.parse(risk.deadline + "T00:00:00Z") : null;
+  const registered = snapshots.length ? snapshots[snapshots.length - 1].registeredCount : null;
 
   return (
     <div className="space-y-6">
@@ -53,6 +55,7 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
 
       <Card>
         <CardContent className="grid grid-cols-2 gap-4 p-5 sm:grid-cols-4 lg:grid-cols-6">
+          <Fact label="Registrováno" value={registered ?? "—"} />
           <Fact label="Naplněnost registrace" value={risk.fill != null ? `${risk.fill} %` : "—"} />
           <Fact
             label={risk.deadlineSource === "start_date" ? "Dní do začátku" : "Dní do uzávěrky"}

@@ -38,6 +38,7 @@ export interface CourseTableRow {
   startAt: string | null;
   state: string;
   fill: number | null;
+  registered: number | null;
   phase2: number | null;
   phase4: number | null;
   riskLevel: RiskLevel;
@@ -92,6 +93,18 @@ export function CoursesTable({ rows }: { rows: CourseTableRow[] }) {
             {row.original.title}
           </Link>
         ),
+      },
+      {
+        accessorKey: "registered",
+        header: "Registrováno",
+        cell: ({ getValue }) => {
+          const n = getValue<number | null>();
+          return n == null ? (
+            <span className="text-muted-foreground">—</span>
+          ) : (
+            <span className="font-medium tabular-nums">{n}</span>
+          );
+        },
       },
       { accessorKey: "fill", header: "Naplněnost", cell: ({ getValue }) => fillCell(getValue<number | null>()) },
       {

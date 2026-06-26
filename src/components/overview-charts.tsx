@@ -87,7 +87,7 @@ export function RiskOverTimeChart({
 export function FillByThemeChart({
   data,
 }: {
-  data: { theme: string; avgFill: number; count: number }[];
+  data: { theme: string; avgFill: number; registered: number; count: number }[];
 }) {
   if (!data.length) {
     return <p className="text-sm text-muted-foreground">Zatím žádné kurzy s otevřenou registrací k agregaci.</p>;
@@ -111,7 +111,14 @@ export function FillByThemeChart({
     maintainAspectRatio: false,
     animation: false,
     scales: { x: { beginAtZero: true, ticks: { callback: (v) => `${v}%` } } },
-    plugins: { legend: { display: false } },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          afterLabel: (ctx) => `${data[ctx.dataIndex].registered} registrovaných`,
+        },
+      },
+    },
   };
   return (
     <div style={{ height: Math.max(200, data.length * 34) }}>

@@ -133,6 +133,33 @@ export function parsePageCount(html: string): number {
   return matches.length ? Math.max(...matches) : 1;
 }
 
+/**
+ * Parse the "Statistika stavu účastníků" block on the participant list tab into a
+ * map of status label -> count, e.g. { "Přijatý": 5, "Zrušený účastníkem": 2 }.
+ */
+export function parseParticipantStats(html: string): Record<string, number> {
+  const $ = cheerio.load(html);
+  const stats: Record<string, number> = {};
+  // Each status is a <span class="btn ...">Label <span class="badge">N</span></span>.
+  $("span.badge").each((_, badge) => {
+    const $badge = $(badge);
+    const n = parsePercent($badge.text());
+    if (n == null) return;
+    const $btn = $badge.closest(".btn"); // the status pill wrapping the badge
+    if (!$btn.length) return;
+    // label = the pill's text minus the badge number
+    const label = clean($btn.clone().children().remove().end().text());
+    if (label) stats[label] = n;
+  });
+  return stats;
+}
+
+/** Registered headcount = accepted participants ("Přijatý"), the number the fill % tracks. */
+export function registeredFromStats(stats: Record<string, number>): number | null {
+  const accepted = stats["Přijatý"] ?? stats["Přijatá"] ?? stats["Přijato"];
+  return accepted ?? null;
+}
+
 export interface DetailFields {
   capacity: number | null;
   maxCapacity: number | null;
