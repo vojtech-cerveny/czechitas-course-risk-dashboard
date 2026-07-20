@@ -24,7 +24,7 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const detail = getCourseDetail(Number(id));
   if (!detail) notFound();
-  const { course, snapshots, risk } = detail;
+  const { course, snapshots, risk, lastCapturedAt, isStale } = detail;
 
   const points: TrendPoint[] = snapshots.map((s) => ({
     t: s.capturedAt.getTime(),
@@ -48,6 +48,11 @@ export default async function CoursePage({ params }: { params: Promise<{ id: str
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="outline">#{course.id}</Badge>
             <span>{stateLabel(course.state, course.stateLabel)}</span>
+            {isStale && lastCapturedAt && (
+              <span className="text-amber-600 dark:text-amber-500">
+                data z {lastCapturedAt.toLocaleString("cs-CZ")}
+              </span>
+            )}
           </div>
         </div>
         <RiskBadge level={risk.level} />

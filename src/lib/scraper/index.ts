@@ -7,7 +7,7 @@ import {
   type ListRow,
   type DetailFields,
 } from "./parse";
-import { TRACKED_STATES } from "@/lib/env";
+import { TRACKED_STATES, FOLLOWUP_STATES } from "@/lib/env";
 
 export interface ScrapedCourse {
   row: ListRow;
@@ -84,11 +84,15 @@ const emptyDetail = (): DetailFields => ({
  * The list page carries the meta, dates, state, and the three phase %s (Fáze 3 =
  * registration fill). For each course we additionally fetch the participant-list tab
  * to read the absolute accepted count. Set `counts: false` to skip that (list-only).
+ *
+ * `knownIds` (course ids already in our DB) enables the follow-up sweep: known
+ * courses missing from the tracked lists are looked up in FOLLOWUP_STATES so their
+ * state label and registered count keep updating after registration closes.
  */
 export async function scrapeAll(
-  opts: { counts?: boolean; delayMs?: number } = {},
+  opts: { counts?: boolean; delayMs?: number; knownIds?: number[] } = {},
 ): Promise<ScrapeResult> {
-  const { counts = true, delayMs = 200 } = opts;
+  const { counts = true, delayMs = 200, knownIds = [] } = opts;
   const client = new IsClient();
   await client.login();
 
@@ -96,6 +100,17 @@ export async function scrapeAll(
   for (const state of TRACKED_STATES) {
     const rows = await fetchEventList(client, state);
     for (const r of rows) byId.set(r.id, r);
+  }
+
+  // Follow-up sweep for previously-seen courses that left the tracked states.
+  const missing = new Set(knownIds.filter((id) => !byId.has(id)));
+  if (missing.size) {
+    for (const state of FOLLOWUP_STATES) {
+      const rows = await fetchEventList(client, state);
+      for (const r of rows) {
+        if (missing.has(r.id)) byId.set(r.id, r);
+      }
+    }
   }
 
   const courses: ScrapedCourse[] = [];

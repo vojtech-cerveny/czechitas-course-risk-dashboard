@@ -33,3 +33,12 @@ export const TRACKED_STATES = [
   "realization_preparation",
   "approved",
 ] as const;
+
+// Transitional post-registration states swept only for courses already in our DB,
+// so a course that leaves the tracked lists (registration closed / course running)
+// keeps getting state + registered-count updates instead of freezing at its last
+// pre-transition snapshot. Evaluation/done are terminal enough to leave frozen.
+export const FOLLOWUP_STATES = [
+  "realization_registration_closed",
+  "in_progress",
+] as const;

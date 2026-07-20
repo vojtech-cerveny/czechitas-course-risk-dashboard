@@ -1,6 +1,7 @@
 import "server-only";
 import { scrapeAll } from "@/lib/scraper";
 import { persistScrape, type PersistSummary } from "@/lib/persist";
+import { getKnownCourseIds } from "@/lib/db/known-ids";
 
 // Module-level lock. One container, so this is enough to prevent overlapping runs.
 let running = false;
@@ -16,7 +17,7 @@ export async function runScrape(): Promise<RunResult> {
   running = true;
   const started = Date.now();
   try {
-    const result = await scrapeAll();
+    const result = await scrapeAll({ knownIds: getKnownCourseIds() });
     const summary = persistScrape(result);
     return { ok: true, summary, durationMs: Date.now() - started };
   } catch (err) {

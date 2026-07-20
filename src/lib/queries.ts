@@ -73,6 +73,9 @@ export interface CourseDetail {
   course: Course;
   snapshots: Snapshot[];
   risk: RiskResult;
+  lastCapturedAt: Date | null;
+  /** Latest snapshot is older than a day — the course likely left all scraped states. */
+  isStale: boolean;
 }
 
 export function getCourseDetail(id: number): CourseDetail | null {
@@ -97,7 +100,10 @@ export function getCourseDetail(id: number): CourseDetail | null {
     },
     getThresholds(),
   );
-  return { course, snapshots: snaps, risk };
+  const lastCapturedAt = snaps.length ? snaps[snaps.length - 1].capturedAt : null;
+  const isStale =
+    lastCapturedAt != null && Date.now() - lastCapturedAt.getTime() > 24 * 3600_000;
+  return { course, snapshots: snaps, risk, lastCapturedAt, isStale };
 }
 
 export interface OverviewStats {

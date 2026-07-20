@@ -33,6 +33,14 @@ const MIN_TREND_SPAN_DAYS = 0.5;
 // A decline must be clearly downward, not flat, to count.
 const DECLINE_SLOPE = -0.2; // % per day
 
+// States a course reaches after registration closes (see FOLLOWUP_STATES in env.ts).
+const POST_REGISTRATION_STATES = new Set([
+  "realization_registration_closed",
+  "in_progress",
+  "evaluation",
+  "done",
+]);
+
 // Least-squares slope of phase3 fill over time (% per day). Null if history is too thin.
 function trendSlope(history: RiskInput["fillHistory"], window: number): number | null {
   const pts = history
@@ -78,6 +86,11 @@ export function computeRisk(input: RiskInput, t: Thresholds, now = Date.now()): 
   };
 
   if (input.state !== "realization_registration_open") {
+    // Post-registration states (from the follow-up sweep): no longer actionable,
+    // but not "upcoming" either.
+    if (POST_REGISTRATION_STATES.has(input.state)) {
+      return { ...base, level: "none", reasons: ["Registrace ukončena"] };
+    }
     return { ...base, level: "pending", reasons: ["Registrace ještě nespuštěna"] };
   }
 
